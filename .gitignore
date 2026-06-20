@@ -3,3 +3,9 @@ node_modules/
 .env.local
 *.log
 .DS_Store
+
+# Internal open-source pipeline reports — useful for the maintainer's own
+# records, not meant for the public repo (they describe what personal data
+# was found/removed, including real business domain names).
+FORK_REPORT.md
+SANITIZATION_REPORT.md

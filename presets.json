@@ -1,0 +1,70 @@
+[
+  { "category": "News", "name": "BBC News — top stories", "url": "http://feeds.bbci.co.uk/news/rss.xml" },
+  { "category": "News", "name": "NYT — home page", "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml" },
+  { "category": "News", "name": "The Guardian — world", "url": "https://www.theguardian.com/world/rss" },
+  { "category": "News", "name": "CBC — top stories", "url": "https://www.cbc.ca/cmlink/rss-topstories" },
+  { "category": "News", "name": "NPR", "url": "https://feeds.npr.org/1001/rss.xml" },
+  { "category": "News", "name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml" },
+
+  { "category": "Tech", "name": "Hacker News — front page", "url": "https://news.ycombinator.com/rss" },
+  { "category": "Tech", "name": "TechCrunch", "url": "https://techcrunch.com/feed/" },
+  { "category": "Tech", "name": "The Verge", "url": "https://www.theverge.com/rss/index.xml" },
+  { "category": "Tech", "name": "Ars Technica", "url": "http://feeds.arstechnica.com/arstechnica/index" },
+  { "category": "Tech", "name": "Wired", "url": "https://www.wired.com/feed/rss" },
+  { "category": "Tech", "name": "Engadget", "url": "https://www.engadget.com/rss.xml" },
+
+  { "category": "Sports", "name": "ESPN", "url": "https://www.espn.com/espn/rss/news" },
+  { "category": "Sports", "name": "BBC Sport", "url": "http://feeds.bbci.co.uk/sport/rss.xml" },
+  { "category": "Sports", "name": "Sky Sports", "url": "https://www.skysports.com/rss/12040" },
+
+  { "category": "Business", "name": "Forbes — Business", "url": "https://www.forbes.com/business/feed/" },
+  { "category": "Business", "name": "Fortune", "url": "https://fortune.com/feed/" },
+  { "category": "Business", "name": "Business Insider", "url": "https://www.businessinsider.com/rss" },
+  { "category": "Business", "name": "CNBC — Top News", "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html" },
+  { "category": "Business", "name": "MarketWatch — Top Stories", "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories" },
+
+  { "category": "Design", "name": "Design Milk", "url": "https://design-milk.com/feed/" },
+  { "category": "Design", "name": "Dezeen", "url": "https://www.dezeen.com/feed/" },
+  { "category": "Design", "name": "Core77", "url": "https://www.core77.com/feed" },
+
+  { "category": "Fashion", "name": "Vogue", "url": "https://www.vogue.com/feed/rss" },
+  { "category": "Fashion", "name": "Highsnobiety", "url": "https://www.highsnobiety.com/feed/" },
+  { "category": "Fashion", "name": "Fashionista", "url": "https://fashionista.com/.rss/full/" },
+
+  { "category": "Photography", "name": "PetaPixel", "url": "https://petapixel.com/feed/" },
+  { "category": "Photography", "name": "DPReview", "url": "https://www.dpreview.com/feeds/news.xml" },
+  { "category": "Photography", "name": "Fstoppers", "url": "https://fstoppers.com/feed" },
+
+  { "category": "Science", "name": "NASA", "url": "https://www.nasa.gov/feed/" },
+  { "category": "Science", "name": "Scientific American", "url": "https://www.scientificamerican.com/platform/syndication/rss/" },
+  { "category": "Science", "name": "Science Daily", "url": "https://www.sciencedaily.com/rss/all.xml" },
+  { "category": "Science", "name": "Nature", "url": "https://www.nature.com/nature.rss" },
+  { "category": "Science", "name": "The Guardian — Science", "url": "https://www.theguardian.com/science/rss" },
+
+  { "category": "Film & TV", "name": "Variety", "url": "https://variety.com/feed/" },
+  { "category": "Film & TV", "name": "The Hollywood Reporter", "url": "https://www.hollywoodreporter.com/feed/" },
+  { "category": "Film & TV", "name": "IndieWire", "url": "https://www.indiewire.com/feed/" },
+  { "category": "Film & TV", "name": "Deadline", "url": "https://deadline.com/feed/" },
+
+  { "category": "Gaming", "name": "Polygon", "url": "https://www.polygon.com/rss/index.xml" },
+  { "category": "Gaming", "name": "Kotaku", "url": "https://kotaku.com/rss" },
+  { "category": "Gaming", "name": "PC Gamer", "url": "https://www.pcgamer.com/rss/" },
+
+  { "category": "Food & Drink", "name": "Bon Appétit", "url": "https://www.bonappetit.com/feed/rss" },
+  { "category": "Food & Drink", "name": "Eater", "url": "https://www.eater.com/rss/index.xml" },
+  { "category": "Food & Drink", "name": "Epicurious", "url": "https://www.epicurious.com/feed/rss" },
+
+  { "category": "Music", "name": "Pitchfork", "url": "https://pitchfork.com/rss/news/" },
+  { "category": "Music", "name": "Rolling Stone — Music", "url": "https://www.rollingstone.com/music/music-news/feed/" },
+  { "category": "Music", "name": "NME", "url": "https://www.nme.com/news/music/feed" },
+
+  { "category": "Travel", "name": "Condé Nast Traveler", "url": "https://www.cntraveler.com/feed/rss" },
+  { "category": "Travel", "name": "BBC Travel", "url": "https://www.bbc.com/travel/feed.rss" },
+  { "category": "Travel", "name": "The Points Guy", "url": "https://thepointsguy.com/feed/" },
+  { "category": "Travel", "name": "Fodor's", "url": "https://www.fodors.com/feed" },
+
+  { "category": "Health & Wellness", "name": "Healthline", "url": "https://www.healthline.com/rss/health-news" },
+  { "category": "Health & Wellness", "name": "NPR — Health", "url": "https://feeds.npr.org/1128/rss.xml" },
+  { "category": "Health & Wellness", "name": "SELF", "url": "https://www.self.com/feed/rss" },
+  { "category": "Health & Wellness", "name": "Prevention", "url": "https://www.prevention.com/rss/all.xml/" }
+]

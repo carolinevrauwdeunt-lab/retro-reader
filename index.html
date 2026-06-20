@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retro Reader</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0c0a07;
+    --gold: #c9923a;
+    --gold-bright: #e8b85a;
+    --gold-glow: rgba(201, 146, 58, 0.18);
+    --text: #ecdec2;
+    --text-dim: #6e6048;
+    --panel: #111009;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 20%, rgba(201,146,58,0.05) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 50% 85%, rgba(10,8,4,0.7) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* ── SIDEBAR (feeds, record-player drawer style) ── */
+  .sidebar {
+    width: 252px;
+    height: 100vh;
+    background: var(--panel);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    display: flex; flex-direction: column;
+    flex-shrink: 0;
+    z-index: 2;
+  }
+  .sidebar-header {
+    padding: 22px 18px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .sidebar-title {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--gold); opacity: 0.8;
+  }
+
+  .sidebar-btn-row {
+    display: flex; flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .browse-presets-btn {
+    margin-top: 0;
+    width: 100%;
+    padding: 9px 12px;
+    background: transparent;
+    border: 1px solid rgba(201,146,58,0.3);
+    border-radius: 6px;
+    color: var(--gold);
+    font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .browse-presets-btn:hover { background: rgba(201,146,58,0.1); border-color: rgba(201,146,58,0.55); }
+
+  .feed-list { flex: 1; overflow-y: auto; padding: 6px 0 16px; }
+  .feed-list::-webkit-scrollbar { width: 3px; }
+  .feed-list::-webkit-scrollbar-track { background: transparent; }
+  .feed-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  /* "All" pinned row */
+  .all-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    margin: 4px 8px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12.5px; font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text-dim);
+    transition: background 0.12s, color 0.12s;
+  }
+  .all-row:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .all-row.active { color: var(--gold); background: rgba(201,146,58,0.1); }
+
+  /* group section */
+  .group-section { margin-bottom: 2px; }
+  .group-header {
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 14px 9px 10px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.12s;
+  }
+  .group-header:hover { background: rgba(255,255,255,0.03); }
+  .group-chevron {
+    width: 9px; height: 9px;
+    flex-shrink: 0;
+    color: var(--text-dim);
+    transition: transform 0.18s, color 0.12s;
+    transform: rotate(90deg);
+  }
+  .group-section.collapsed .group-chevron { transform: rotate(0deg); }
+  .group-name {
+    flex: 1;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text);
+  }
+  .group-header.active .group-name { color: var(--gold); }
+  .group-header.active .group-chevron { color: var(--gold); }
+  .group-count {
+    font-size: 10.5px; color: var(--text-dim);
+    background: rgba(255,255,255,0.05);
+    padding: 1px 6px; border-radius: 8px;
+  }
+
+  .group-feeds {
+    overflow: hidden;
+    max-height: 1000px;
+    transition: max-height 0.2s ease;
+  }
+  .group-section.collapsed .group-feeds { max-height: 0; }
+
+  .feed-item {
+    display: flex; align-items: flex-start; gap: 9px;
+    padding: 7px 14px 7px 28px;
+    cursor: default;
+    transition: background 0.12s;
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+  .feed-item:hover { background: rgba(255,255,255,0.04); }
+  .feed-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gold); flex-shrink: 0;
+    margin-top: 4px;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .feed-item.has-new .feed-dot { opacity: 1; }
+  .feed-item.has-new .feed-name { color: var(--text); }
+  .feed-item { cursor: grab; }
+  .feed-item.dragging { opacity: 0.4; }
+  .group-header.drop-target,
+  .group-feeds.drop-target {
+    background: rgba(201,146,58,0.15);
+    outline: 1px dashed var(--gold);
+    outline-offset: -1px;
+  }
+  .feed-delete-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    opacity: 0;
+    transition: opacity 0.12s, color 0.12s;
+  }
+  .feed-item:hover .feed-delete-btn { opacity: 1; }
+  .feed-delete-btn:hover { color: #e0554a; }
+  .group-delete-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    opacity: 0;
+    transition: opacity 0.12s, color 0.12s;
+  }
+  .group-header:hover .group-delete-btn { opacity: 1; }
+  .group-delete-btn:hover { color: #e0554a; }
+  .feed-name {
+    color: var(--text-dim);
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* ── PRESET PICKER MODAL ── */
+  .preset-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .preset-modal {
+    width: 520px; max-height: 78vh;
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .preset-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .preset-modal-title {
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--gold);
+  }
+  .preset-modal-close {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-dim); font-size: 18px;
+    line-height: 1; padding: 4px;
+  }
+  .preset-modal-close:hover { color: var(--text); }
+  .preset-modal-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+  .preset-category { border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .preset-category-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 20px;
+    cursor: pointer;
+    font-size: 13.5px; font-weight: 600;
+    color: var(--text);
+    transition: background 0.12s;
+  }
+  .preset-category-header:hover { background: rgba(255,255,255,0.03); }
+  .preset-category-icon { color: var(--gold); opacity: 0.85; flex-shrink: 0; }
+  .preset-category-count {
+    margin-left: auto;
+    font-size: 11px; color: var(--text-dim);
+  }
+  .preset-category-chevron {
+    width: 14px; height: 14px;
+    transition: transform 0.15s;
+    color: var(--text-dim);
+  }
+  .preset-category.expanded .preset-category-chevron { transform: rotate(90deg); }
+  .preset-feed-list { overflow: hidden; max-height: 0; transition: max-height 0.2s ease; }
+  .preset-category.expanded .preset-feed-list { max-height: 600px; }
+
+  .preset-feed-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 20px 9px 46px;
+    font-size: 12.5px;
+  }
+  .preset-feed-name { color: var(--text-dim); flex: 1; }
+  .preset-feed-row.added .preset-feed-name { color: var(--text); }
+  .preset-add-btn {
+    background: rgba(201,146,58,0.12);
+    border: 1px solid rgba(201,146,58,0.4);
+    color: var(--gold);
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .preset-add-btn:hover { background: rgba(201,146,58,0.22); }
+  .preset-add-btn.added {
+    background: transparent; border-color: rgba(255,255,255,0.1);
+    color: var(--text-dim); cursor: default;
+  }
+
+  /* ── ADD-YOUR-OWN MODAL ── */
+  .add-feed-body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .add-feed-field { display: flex; flex-direction: column; gap: 6px; }
+  .add-feed-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .add-feed-input, .add-feed-select {
+    background: #0d0a06;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 9px 11px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .add-feed-input:focus, .add-feed-select:focus { outline: none; border-color: rgba(201,146,58,0.5); }
+  .add-feed-row { display: flex; gap: 10px; }
+  .add-feed-row > .add-feed-field { flex: 1; }
+  .add-feed-status {
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    line-height: 1.4;
+  }
+  .add-feed-status.ok { background: rgba(201,146,58,0.1); color: var(--gold-bright); }
+  .add-feed-status.err { background: rgba(200,60,40,0.12); color: #e88a78; }
+  .add-feed-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+  .add-feed-btn {
+    padding: 9px 16px;
+    border-radius: 6px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: transparent;
+    color: var(--text-dim);
+  }
+  .add-feed-btn.primary {
+    background: var(--gold); color: #1a0e04; border-color: var(--gold);
+  }
+  .add-feed-btn:disabled { opacity: 0.5; cursor: default; }
+
+  /* ── MAIN ── */
+  .main { flex: 1; height: 100vh; overflow-y: auto; position: relative; z-index: 1; }
+  .main::-webkit-scrollbar { width: 5px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 36px 18px;
+    position: sticky; top: 0;
+    background: linear-gradient(var(--bg) 70%, transparent);
+    z-index: 5;
+  }
+
+  .status-row { display: flex; align-items: center; gap: 14px; }
+
+  /* spinning vinyl badge — refresh indicator */
+  .badge {
+    position: relative;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 50%, #282828 0 14%, transparent 14%),
+      conic-gradient(from 0deg, rgba(255,255,255,0.03) 0deg, rgba(255,255,255,0.08) 60deg, rgba(255,255,255,0.01) 120deg, transparent 200deg, rgba(255,255,255,0.05) 300deg, rgba(255,255,255,0.03) 360deg),
+      repeating-radial-gradient(circle at 50% 50%, #0d0d0d 0px, #0d0d0d 1.5px, #1e1e1e 1.5px, #1e1e1e 2.6px);
+    box-shadow: 0 0 0 1px #222, 0 4px 16px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+  }
+  .badge.spinning { animation: spin 2.2s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .badge::after {
+    content: '';
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px; height: 16px; border-radius: 50%;
+    background: conic-gradient(from 45deg, #3b2710, #c9923a 90deg, #7a4e20 180deg, #3b2710);
+  }
+
+  .title-block { display: flex; flex-direction: column; gap: 2px; }
+  .page-title { font-size: 18px; font-weight: 600; letter-spacing: -0.2px; }
+  .page-sub { font-size: 11px; color: var(--text-dim); letter-spacing: 0.05em; text-transform: uppercase; }
+
+  .topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+  .view-toggle {
+    display: flex;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .view-toggle button {
+    background: none; border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 6px 13px;
+    border-radius: 6px;
+    font-size: 11.5px; font-weight: 600;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    transition: color 0.15s, background 0.15s;
+  }
+  .view-toggle button:hover { color: var(--text); }
+  .view-toggle button.active { color: #1a0e04; background: var(--gold); }
+
+  .refresh-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+  }
+  .refresh-btn:hover { color: var(--gold); background: rgba(201,146,58,0.1); border-color: rgba(201,146,58,0.25); }
+
+  /* ── TV WALL ── */
+  .tv-wall {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-auto-rows: minmax(150px, auto);
+    grid-auto-flow: dense;
+    align-items: start;
+    gap: 26px;
+    padding: 6px 36px 60px;
+  }
+  .tv-wall.tv-wall-measured {
+    grid-auto-rows: var(--tv-row-unit, 150px);
+  }
+
+  .tv {
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center;
+  }
+
+  .tv.tv-big {
+    grid-column: span 2;
+    grid-row: span 2;
+    align-self: stretch;
+  }
+  .tv.tv-big .tv-shell { aspect-ratio: auto; flex: 1 1 auto; min-height: 0; width: 100%; padding: 14px 14px 54px; }
+  .tv.tv-big .tv-caption .tv-headline { font-size: 18px; -webkit-line-clamp: 4; }
+  .tv.tv-big .tv-legs::before, .tv.tv-big .tv-legs::after { width: 14px; height: 20px; }
+  .tv.tv-big .tv-feedname { font-size: 12px; }
+  @media (max-width: 640px) {
+    .tv.tv-big { grid-column: span 1; grid-row: span 1; }
+    .tv.tv-big .tv-shell { aspect-ratio: 4 / 3.3; height: auto; padding: 14px 14px 22px; }
+    .tv.tv-big .tv-console { display: none; }
+  }
+
+  .tv-console {
+    position: absolute; left: 14px; right: 14px; bottom: 14px;
+    height: 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 4;
+  }
+  .tv-channel {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 13px; font-weight: 700;
+    color: var(--gold-bright);
+    background: #0a0704;
+    padding: 4px 8px;
+    border-radius: 3px;
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.05);
+    letter-spacing: 0.04em;
+  }
+  .tv-knobs { display: flex; align-items: center; gap: 10px; }
+  .tv-knob {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #6a5836, #1a140c 75%);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.1);
+    position: relative;
+  }
+  .tv-knob::after {
+    content: '';
+    position: absolute; top: 2px; left: 50%;
+    width: 2px; height: 6px;
+    background: var(--gold);
+    transform: translateX(-50%) rotate(var(--knob-rotate, 20deg));
+    transform-origin: bottom center;
+  }
+  .tv-speaker {
+    display: grid;
+    grid-template-columns: repeat(4, 5px);
+    grid-auto-rows: 5px;
+    gap: 4px;
+  }
+  .tv-speaker span {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #000;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 1px 0 rgba(255,255,255,0.03);
+  }
+
+  .tv-shell {
+    width: 100%;
+    aspect-ratio: 4 / 3.3;
+    border-radius: 22px;
+    background: linear-gradient(160deg, #2a2117 0%, #15110a 60%, #0c0906 100%);
+    box-shadow:
+      0 14px 34px rgba(0,0,0,0.7),
+      inset 0 0 0 1px rgba(255,255,255,0.04),
+      inset 0 2px 6px rgba(255,255,255,0.03);
+    padding: 14px 14px 22px;
+    position: relative;
+    transition: transform 0.15s;
+  }
+  .tv:hover .tv-shell { transform: translateY(-3px); }
+
+  .tv-screen {
+    position: relative;
+    width: 100%; height: 100%;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #050402;
+    box-shadow:
+      inset 0 0 30px rgba(0,0,0,0.85),
+      inset 0 0 0 3px #000,
+      inset 0 0 0 5px rgba(80,60,30,0.4);
+  }
+  .tv-screen img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    filter: saturate(0.85) contrast(1.05) brightness(0.92);
+  }
+  .tv-screen .no-image {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    background: radial-gradient(circle at 50% 40%, #1c160d 0%, #0a0704 80%);
+    color: var(--gold);
+    opacity: 0.35;
+    font-size: 26px;
+  }
+  .tv-screen::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,0.18) 3px
+    );
+    mix-blend-mode: multiply;
+    pointer-events: none;
+  }
+  .tv-screen::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 120% 90% at 50% 40%, rgba(255,255,255,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 140% 140% at 50% 50%, transparent 60%, rgba(0,0,0,0.55) 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .tv-caption {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 18px 10px 8px;
+    background: linear-gradient(to top, rgba(0,0,0,0.88), transparent);
+    z-index: 3;
+  }
+  .tv-caption .tv-headline {
+    font-size: 12.5px; font-weight: 600; color: #f3e8d2;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .tv-new-light {
+    position: absolute; top: 9px; right: 11px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gold-bright);
+    box-shadow: 0 0 6px var(--gold-bright);
+    z-index: 4;
+    opacity: 0;
+  }
+  .tv.has-new .tv-new-light { opacity: 1; animation: blink 2.4s ease-in-out infinite; }
+  @keyframes blink { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  .tv-legs {
+    display: flex; gap: 50px;
+    margin-top: -4px;
+  }
+  .tv-legs::before, .tv-legs::after {
+    content: '';
+    width: 8px; height: 12px;
+    background: #1a140c;
+    border-radius: 0 0 3px 3px;
+  }
+
+  .tv-feedname {
+    margin-top: 10px;
+    font-size: 10px; color: var(--text-dim);
+    letter-spacing: 0.05em; text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* ── ARTICLE LIST ── */
+  .articles { padding: 4px 36px 60px; max-width: 720px; }
+
+  .article {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 18px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .article:hover { opacity: 0.85; }
+  .article.read { opacity: 0.45; }
+
+  .article-meta {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--gold); opacity: 0.75;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .article-meta .new-pill {
+    background: var(--gold); color: #1a0e04;
+    font-size: 9px; font-weight: 700;
+    padding: 2px 6px; border-radius: 4px;
+    letter-spacing: 0.06em;
+  }
+  .article-title { font-size: 15.5px; font-weight: 600; color: var(--text); line-height: 1.4; }
+  .article-summary { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+  .article-footer { font-size: 11px; color: var(--text-dim); opacity: 0.6; }
+
+  .empty-state, .loading-state {
+    padding: 80px 0; text-align: center;
+    color: var(--text-dim); font-size: 14px;
+  }
+  .loading-state {
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .loading-pulse {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--gold-bright);
+    animation: loadingPulse 1.6s ease-out infinite;
+  }
+  @keyframes loadingPulse {
+    0% { box-shadow: 0 0 0 0 var(--gold-glow); }
+    70% { box-shadow: 0 0 0 18px rgba(201, 146, 58, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(201, 146, 58, 0); }
+  }
+  .loading-text { transition: opacity 0.25s ease; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-title">Retro Reader</div>
+    <div class="sidebar-btn-row">
+      <button class="browse-presets-btn" onclick="openPresetModal()">+ Browse Presets</button>
+      <button class="browse-presets-btn" onclick="openAddFeedModal()">+ Add Your Own</button>
+      <button class="browse-presets-btn" onclick="openNewCategoryModal()">+ New Category</button>
+    </div>
+  </div>
+  <div class="feed-list" id="feedList"></div>
+</div>
+
+<div id="presetOverlay"></div>
+<div id="addFeedOverlay"></div>
+<div id="newCategoryOverlay"></div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="status-row">
+      <div class="badge" id="badge"></div>
+      <div class="title-block">
+        <div class="page-title" id="pageTitle">All Feeds</div>
+        <div class="page-sub" id="pageSub">Loading…</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="view-toggle">
+        <button id="viewFeedBtn" class="active" onclick="setView('feed')">Feed</button>
+        <button id="viewTvBtn" onclick="setView('tv')">TV Wall</button>
+      </div>
+      <button class="refresh-btn" onclick="refresh()">Refresh</button>
+    </div>
+  </div>
+  <div class="articles" id="articles">
+    <div class="loading-state">Tuning in…</div>
+  </div>
+  <div class="tv-wall" id="tvWall" style="display:none"></div>
+</div>
+
+<script>
+  let feeds = [];
+  let items = [];
+  let currentGroup = '';
+  let collapsed = new Set();
+  let presets = [];
+  let expandedPresetCategories = new Set();
+  let categories = [];
+
+  const CHEVRON = `<svg class="group-chevron" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+  const PRESET_CHEVRON = `<svg class="preset-category-chevron" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+  const PRESET_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" class="preset-category-icon"><path d="M4 4a1 1 0 0 1 1-1c8.284 0 15 6.716 15 15a1 1 0 1 1-2 0c0-7.18-5.82-13-13-13a1 1 0 0 1-1-1zm0 6a1 1 0 0 1 1-1 9 9 0 0 1 9 9 1 1 0 1 1-2 0 7 7 0 0 0-7-7 1 1 0 0 1-1-1zm2 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg>`;
+
+  async function loadFeeds() {
+    const [feedsRes, categoriesRes] = await Promise.all([
+      fetch('/api/feeds').then(r => r.json()),
+      fetch('/api/categories').then(r => r.json()).catch(() => []),
+    ]);
+    feeds = feedsRes;
+    categories = categoriesRes;
+    renderFeedList();
+  }
+
+  function openNewCategoryModal() {
+    document.getElementById('newCategoryOverlay').innerHTML = `
+      <div class="preset-overlay" onclick="if (event.target === this) closeNewCategoryModal()">
+        <div class="preset-modal">
+          <div class="preset-modal-header">
+            <div class="preset-modal-title">New Category</div>
+            <button class="preset-modal-close" onclick="closeNewCategoryModal()">&times;</button>
+          </div>
+          <div class="add-feed-body">
+            <div class="add-feed-field">
+              <div class="add-feed-label">Category Name</div>
+              <input id="newCategoryName" class="add-feed-input" type="text" placeholder="e.g. Travel">
+            </div>
+            <div class="add-feed-actions">
+              <button class="add-feed-btn primary" onclick="submitNewCategory()">Create</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.getElementById('newCategoryName').focus();
+  }
+
+  function closeNewCategoryModal() {
+    document.getElementById('newCategoryOverlay').innerHTML = '';
+  }
+
+  async function submitNewCategory() {
+    const name = document.getElementById('newCategoryName').value.trim();
+    if (!name) return;
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        categories = data.categories;
+        renderFeedList();
+        closeNewCategoryModal();
+      }
+    } catch {}
+  }
+
+  function presetCategories() {
+    return [...new Set(presets.map(p => p.category))];
+  }
+
+  function isPresetAdded(url) {
+    return feeds.some(f => f.url === url);
+  }
+
+  async function openPresetModal() {
+    if (!presets.length) {
+      presets = await fetch('/api/presets').then(r => r.json());
+    }
+    renderPresetModal();
+  }
+
+  function closePresetModal() {
+    document.getElementById('presetOverlay').innerHTML = '';
+  }
+
+  function togglePresetCategory(category) {
+    if (expandedPresetCategories.has(category)) expandedPresetCategories.delete(category);
+    else expandedPresetCategories.add(category);
+    renderPresetModal();
+  }
+
+  async function addPresetFeed(category, name, presetUrl) {
+    const btn = document.getElementById('preset-btn-' + btoa(presetUrl).replace(/[^a-zA-Z0-9]/g, ''));
+    if (btn) { btn.textContent = 'Adding…'; btn.disabled = true; }
+    try {
+      const res = await fetch('/api/feeds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feeds: [{ group: category, name, url: presetUrl }] }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        feeds = data.feeds;
+        renderFeedList();
+        renderPresetModal();
+      }
+    } catch {
+      if (btn) { btn.textContent = 'Failed — retry'; btn.disabled = false; }
+    }
+  }
+
+  function renderPresetModal() {
+    const overlay = document.getElementById('presetOverlay');
+    const categories = presetCategories();
+    overlay.innerHTML = `
+      <div class="preset-overlay" onclick="if (event.target === this) closePresetModal()">
+        <div class="preset-modal">
+          <div class="preset-modal-header">
+            <div class="preset-modal-title">Browse Presets</div>
+            <button class="preset-modal-close" onclick="closePresetModal()">&times;</button>
+          </div>
+          <div class="preset-modal-body">
+            ${categories.map(category => {
+              const categoryPresets = presets.filter(p => p.category === category);
+              const expanded = expandedPresetCategories.has(category);
+              return `
+              <div class="preset-category ${expanded ? 'expanded' : ''}">
+                <div class="preset-category-header" onclick="togglePresetCategory('${category.replace(/'/g, "\\'")}')">
+                  ${PRESET_ICON}
+                  <div>${escapeHtml(category)}</div>
+                  <div class="preset-category-count">${categoryPresets.length}</div>
+                  ${PRESET_CHEVRON}
+                </div>
+                <div class="preset-feed-list">
+                  ${categoryPresets.map(p => {
+                    const added = isPresetAdded(p.url);
+                    const safeId = btoa(p.url).replace(/[^a-zA-Z0-9]/g, '');
+                    return `
+                    <div class="preset-feed-row ${added ? 'added' : ''}">
+                      <div class="preset-feed-name">${escapeHtml(p.name)}</div>
+                      <button id="preset-btn-${safeId}" class="preset-add-btn ${added ? 'added' : ''}"
+                        ${added ? 'disabled' : ''}
+                        onclick="addPresetFeed('${category.replace(/'/g, "\\'")}', '${p.name.replace(/'/g, "\\'")}', '${p.url.replace(/'/g, "\\'")}')">
+                        ${added ? 'Added' : 'Add'}
+                      </button>
+                    </div>`;
+                  }).join('')}
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  let addFeedCheck = null; // { ok, title, itemCount, error } for the last checked URL, or null
+  let addFeedBulkResults = null; // array of { url, ok, resolvedUrl, title, itemCount, error, name, include } when multiple lines pasted
+  let addFeedNewCategory = false;
+  let addFeedSelectedGroup = null;
+
+  function openAddFeedModal() {
+    addFeedCheck = null;
+    addFeedBulkResults = null;
+    addFeedNewCategory = false;
+    addFeedSelectedGroup = null;
+    renderAddFeedModal();
+  }
+
+  function onAddFeedGroupChange() {
+    const select = document.getElementById('addFeedGroupSelect');
+    addFeedNewCategory = select.value === '__new__';
+    addFeedSelectedGroup = addFeedNewCategory ? null : select.value;
+    renderAddFeedModal();
+    if (addFeedNewCategory) {
+      const input = document.getElementById('addFeedNewGroup');
+      if (input) input.focus();
+    }
+  }
+
+  function closeAddFeedModal() {
+    document.getElementById('addFeedOverlay').innerHTML = '';
+  }
+
+  async function checkCustomFeed() {
+    const raw = document.getElementById('addFeedUrl').value;
+    const lines = [...new Set(raw.split('\n').map(s => s.trim()).filter(Boolean))];
+    if (!lines.length) return;
+
+    if (lines.length === 1) {
+      addFeedBulkResults = null;
+      const url = lines[0];
+      addFeedCheck = { checking: true, url };
+      renderAddFeedModal();
+      try {
+        const res = await fetch('/api/validate-feed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        addFeedCheck = { ...(await res.json()), url };
+      } catch {
+        addFeedCheck = { ok: false, error: 'Could not reach the server', url };
+      }
+      renderAddFeedModal();
+      return;
+    }
+
+    addFeedCheck = null;
+    addFeedBulkResults = lines.map(url => ({ url, checking: true }));
+    renderAddFeedModal();
+    try {
+      const res = await fetch('/api/validate-feeds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls: lines }),
+      });
+      const data = await res.json();
+      addFeedBulkResults = (data.results || []).map(r => {
+        let fallbackName = r.resolvedUrl || r.url;
+        try { fallbackName = new URL(r.resolvedUrl || r.url).hostname; } catch {}
+        return {
+          url: r.url,
+          ok: !!r.ok,
+          error: r.error || '',
+          resolvedUrl: r.resolvedUrl || r.url,
+          title: r.title || '',
+          itemCount: r.itemCount || 0,
+          name: r.ok ? (r.title || fallbackName) : '',
+          include: !!r.ok,
+        };
+      });
+    } catch {
+      addFeedBulkResults = lines.map(url => ({ url, ok: false, error: 'Could not reach the server', include: false, name: '' }));
+    }
+    renderAddFeedModal();
+  }
+
+  function updateBulkName(i, value) {
+    if (addFeedBulkResults && addFeedBulkResults[i]) addFeedBulkResults[i].name = value;
+  }
+
+  function toggleBulkInclude(i, checked) {
+    if (!addFeedBulkResults || !addFeedBulkResults[i]) return;
+    addFeedBulkResults[i].include = checked;
+    const count = addFeedBulkResults.filter(r => r.include).length;
+    const btn = document.getElementById('addFeedBulkSubmitBtn');
+    if (btn) btn.textContent = `Add ${count} Feed${count === 1 ? '' : 's'}`;
+  }
+
+  async function submitBulkFeeds() {
+    const groupSelect = document.getElementById('addFeedGroupSelect');
+    const group = groupSelect.value === '__new__'
+      ? document.getElementById('addFeedNewGroup').value.trim()
+      : groupSelect.value.trim();
+    const toAdd = (addFeedBulkResults || [])
+      .filter(r => r.ok && r.include)
+      .map(r => ({ group, name: (r.name || '').trim() || r.title || r.resolvedUrl, url: r.resolvedUrl }));
+    if (!group || !toAdd.length) return;
+    const btn = document.getElementById('addFeedBulkSubmitBtn');
+    if (btn) { btn.textContent = 'Adding…'; btn.disabled = true; }
+    try {
+      const res = await fetch('/api/feeds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feeds: toAdd }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        feeds = data.feeds;
+        renderFeedList();
+        closeAddFeedModal();
+      } else if (btn) {
+        btn.textContent = 'Failed — retry'; btn.disabled = false;
+      }
+    } catch {
+      if (btn) { btn.textContent = 'Failed — retry'; btn.disabled = false; }
+    }
+  }
+
+  async function submitCustomFeed() {
+    const url = (addFeedCheck && addFeedCheck.resolvedUrl) || document.getElementById('addFeedUrl').value.trim();
+    const name = document.getElementById('addFeedName').value.trim();
+    const groupSelect = document.getElementById('addFeedGroupSelect');
+    const group = groupSelect.value === '__new__'
+      ? document.getElementById('addFeedNewGroup').value.trim()
+      : groupSelect.value.trim();
+    if (!url || !name || !group) return;
+    const btn = document.getElementById('addFeedSubmitBtn');
+    if (btn) { btn.textContent = 'Adding…'; btn.disabled = true; }
+    try {
+      const res = await fetch('/api/feeds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feeds: [{ group, name, url }] }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        feeds = data.feeds;
+        renderFeedList();
+        closeAddFeedModal();
+      } else if (btn) {
+        btn.textContent = 'Failed — retry'; btn.disabled = false;
+      }
+    } catch {
+      if (btn) { btn.textContent = 'Failed — retry'; btn.disabled = false; }
+    }
+  }
+
+  function renderAddFeedModal() {
+    const overlay = document.getElementById('addFeedOverlay');
+    const check = addFeedCheck;
+    const bulk = addFeedBulkResults;
+    const existingGroups = groupNames();
+    const detectedName = check && check.ok ? check.title : '';
+    const showCategoryPicker = (check && check.ok) || (bulk && bulk.some(r => r.ok));
+    const includedCount = bulk ? bulk.filter(r => r.include).length : 0;
+
+    const bulkRows = bulk ? bulk.map((r, i) => {
+      if (r.checking) {
+        return `<div class="add-feed-status">Checking ${escapeHtml(r.url)}…</div>`;
+      }
+      if (!r.ok) {
+        return `<div class="add-feed-status err">${escapeHtml(r.url)} — ${escapeHtml(r.error || 'not a valid feed')}</div>`;
+      }
+      return `<div class="add-feed-row" style="align-items:center">
+        <input type="checkbox" ${r.include ? 'checked' : ''} onchange="toggleBulkInclude(${i}, this.checked)">
+        <input class="add-feed-input" type="text" value="${escapeHtml(r.name)}" onchange="updateBulkName(${i}, this.value)" style="flex:1">
+        <div class="add-feed-status ok" style="margin:0">${r.itemCount} item${r.itemCount === 1 ? '' : 's'}</div>
+      </div>`;
+    }).join('') : '';
+
+    overlay.innerHTML = `
+      <div class="preset-overlay" onclick="if (event.target === this) closeAddFeedModal()">
+        <div class="preset-modal">
+          <div class="preset-modal-header">
+            <div class="preset-modal-title">Add Your Own Feed</div>
+            <button class="preset-modal-close" onclick="closeAddFeedModal()">&times;</button>
+          </div>
+          <div class="add-feed-body">
+            <div class="add-feed-field">
+              <div class="add-feed-label">Feed URL${!bulk ? '' : 's'} <span style="opacity:.6">(paste one or multiple, one per line)</span></div>
+              <textarea id="addFeedUrl" class="add-feed-input" rows="3" placeholder="https://example.com/feed&#10;https://someone.substack.com">${check && check.url ? escapeHtml(check.url) : ''}</textarea>
+            </div>
+            ${check && check.checking ? `<div class="add-feed-status">Checking feed…</div>` : ''}
+            ${check && !check.checking && check.ok === false ? `<div class="add-feed-status err">${escapeHtml(check.error || 'Could not load this feed')}</div>` : ''}
+            ${check && check.ok ? `<div class="add-feed-status ok">Found "${escapeHtml(check.title)}" — ${check.itemCount} item${check.itemCount === 1 ? '' : 's'}</div>` : ''}
+            ${bulkRows}
+            ${showCategoryPicker ? `
+            ${check && check.ok ? `
+            <div class="add-feed-row">
+              <div class="add-feed-field">
+                <div class="add-feed-label">Display Name</div>
+                <input id="addFeedName" class="add-feed-input" type="text" value="${escapeHtml(detectedName)}">
+              </div>
+              <div class="add-feed-field">
+                <div class="add-feed-label">Category</div>
+                <select id="addFeedGroupSelect" class="add-feed-select" onchange="onAddFeedGroupChange()">
+                  ${existingGroups.map(g => `<option value="${escapeHtml(g)}" ${!addFeedNewCategory && g === (addFeedSelectedGroup || existingGroups[0]) ? 'selected' : ''}>${escapeHtml(g)}</option>`).join('')}
+                  <option value="__new__" ${addFeedNewCategory ? 'selected' : ''}>+ New category…</option>
+                </select>
+              </div>
+            </div>` : ''}
+            ${bulk ? `
+            <div class="add-feed-field">
+              <div class="add-feed-label">Category for all selected feeds</div>
+              <select id="addFeedGroupSelect" class="add-feed-select" onchange="onAddFeedGroupChange()">
+                ${existingGroups.map(g => `<option value="${escapeHtml(g)}" ${!addFeedNewCategory && g === (addFeedSelectedGroup || existingGroups[0]) ? 'selected' : ''}>${escapeHtml(g)}</option>`).join('')}
+                <option value="__new__" ${addFeedNewCategory ? 'selected' : ''}>+ New category…</option>
+              </select>
+            </div>` : ''}
+            ${addFeedNewCategory ? `
+            <div class="add-feed-field">
+              <div class="add-feed-label">New Category Name</div>
+              <input id="addFeedNewGroup" class="add-feed-input" type="text" placeholder="e.g. Travel">
+            </div>` : ''}` : ''}
+            <div class="add-feed-actions">
+              ${bulk
+                ? `<button id="addFeedBulkSubmitBtn" class="add-feed-btn primary" onclick="submitBulkFeeds()" ${includedCount ? '' : 'disabled'}>Add ${includedCount} Feed${includedCount === 1 ? '' : 's'}</button>`
+                : check && check.ok
+                ? `<button id="addFeedSubmitBtn" class="add-feed-btn primary" onclick="submitCustomFeed()">Add Feed</button>`
+                : `<button class="add-feed-btn primary" onclick="checkCustomFeed()">Check Feed</button>`}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function groupNames() {
+    return [...new Set([...feeds.map(f => f.group), ...categories])];
+  }
+
+  function renderFeedList() {
+    const list = document.getElementById('feedList');
+    const groups = groupNames();
+
+    const allRow = `<div class="all-row ${currentGroup === '' ? 'active' : ''}" onclick="selectGroup('')">All feeds</div>`;
+
+    const sections = groups.map(group => {
+      const groupFeeds = feeds.filter(f => f.group === group);
+      const isCollapsed = collapsed.has(group);
+      const isActive = currentGroup === group;
+      const feedRows = groupFeeds.map(f => {
+        const hasNew = items.some(it => it.feedName === f.name && it.isNew);
+        return `<div class="feed-item ${hasNew ? 'has-new' : ''}" title="${escapeHtml(f.name)}" draggable="true" data-url="${escapeHtml(f.url)}" ondragstart="onFeedDragStart(event, '${f.url.replace(/'/g, "\\'")}')" ondragend="onFeedDragEnd(event)">
+          <div class="feed-dot"></div>
+          <div class="feed-name">${escapeHtml(f.name)}</div>
+          <button class="feed-delete-btn" title="Remove feed" onclick="event.stopPropagation(); deleteFeed('${f.url.replace(/'/g, "\\'")}', '${f.name.replace(/'/g, "\\'")}')">&times;</button>
+        </div>`;
+      }).join('');
+
+      const canDeleteGroup = groupFeeds.length === 0;
+
+      return `<div class="group-section ${isCollapsed ? 'collapsed' : ''}" data-group="${escapeHtml(group)}">
+        <div class="group-header ${isActive ? 'active' : ''}" onclick="onGroupHeaderClick(event, '${group.replace(/'/g, "\\'")}')" ondragover="onGroupDragOver(event)" ondragleave="onGroupDragLeave(event)" ondrop="onGroupDrop(event, '${group.replace(/'/g, "\\'")}')">
+          ${CHEVRON}
+          <div class="group-name">${escapeHtml(group)}</div>
+          <div class="group-count">${groupFeeds.length}</div>
+          ${canDeleteGroup ? `<button class="group-delete-btn" title="Remove empty category" onclick="event.stopPropagation(); deleteCategory('${group.replace(/'/g, "\\'")}')">&times;</button>` : ''}
+        </div>
+        <div class="group-feeds" ondragover="onGroupDragOver(event)" ondragleave="onGroupDragLeave(event)" ondrop="onGroupDrop(event, '${group.replace(/'/g, "\\'")}')">${feedRows}</div>
+      </div>`;
+    }).join('');
+
+    list.innerHTML = allRow + sections;
+  }
+
+  async function deleteFeed(feedUrl, feedName) {
+    if (!confirm(`Remove "${feedName}" from your feeds?`)) return;
+    try {
+      const res = await fetch('/api/feeds', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: feedUrl }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        feeds = data.feeds;
+        renderFeedList();
+      }
+    } catch {}
+  }
+
+  async function deleteCategory(group) {
+    if (!confirm(`Remove the "${group}" category?`)) return;
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: group }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        categories = data.categories;
+        renderFeedList();
+      } else if (data.error) {
+        alert(data.error);
+      }
+    } catch {}
+  }
+
+  let draggedFeedUrl = null;
+
+  function onFeedDragStart(evt, feedUrl) {
+    draggedFeedUrl = feedUrl;
+    evt.dataTransfer.effectAllowed = 'move';
+    evt.target.classList.add('dragging');
+  }
+
+  function onFeedDragEnd(evt) {
+    evt.target.classList.remove('dragging');
+    draggedFeedUrl = null;
+    document.querySelectorAll('.group-header.drop-target, .group-feeds.drop-target')
+      .forEach(el => el.classList.remove('drop-target'));
+  }
+
+  function onGroupDragOver(evt) {
+    if (!draggedFeedUrl) return;
+    evt.preventDefault();
+    evt.currentTarget.classList.add('drop-target');
+  }
+
+  function onGroupDragLeave(evt) {
+    evt.currentTarget.classList.remove('drop-target');
+  }
+
+  async function onGroupDrop(evt, group) {
+    evt.preventDefault();
+    evt.currentTarget.classList.remove('drop-target');
+    const feedUrl = draggedFeedUrl;
+    draggedFeedUrl = null;
+    if (!feedUrl) return;
+    const feed = feeds.find(f => f.url === feedUrl);
+    if (!feed || feed.group === group) return;
+    feed.group = group;
+    renderFeedList();
+    try {
+      await fetch('/api/feeds/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: feedUrl, group }),
+      });
+    } catch {}
+  }
+
+  function onGroupHeaderClick(evt, group) {
+    // chevron click toggles collapse only; rest of row filters + expands
+    if (evt.target.closest('.group-chevron')) {
+      toggleCollapse(group);
+    } else {
+      if (collapsed.has(group)) collapsed.delete(group);
+      selectGroup(group);
+    }
+  }
+
+  function toggleCollapse(group) {
+    if (collapsed.has(group)) collapsed.delete(group); else collapsed.add(group);
+    renderFeedList();
+  }
+
+  function timeAgo(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return '';
+    const diffMin = Math.round((Date.now() - d.getTime()) / 60000);
+    if (diffMin < 1) return 'just now';
+    if (diffMin < 60) return diffMin + 'm ago';
+    const diffHr = Math.round(diffMin / 60);
+    if (diffHr < 24) return diffHr + 'h ago';
+    return Math.round(diffHr / 24) + 'd ago';
+  }
+
+  let currentView = 'feed';
+
+  function setView(view) {
+    currentView = view;
+    document.getElementById('viewFeedBtn').classList.toggle('active', view === 'feed');
+    document.getElementById('viewTvBtn').classList.toggle('active', view === 'tv');
+    document.getElementById('articles').style.display = view === 'feed' ? '' : 'none';
+    document.getElementById('tvWall').style.display = view === 'tv' ? '' : 'none';
+    if (view === 'tv') renderTvWall();
+  }
+
+  const LOADING_MESSAGES = [
+    'Tuning in…',
+    'Adjusting the antenna…',
+    'Warming up the tubes…',
+    'Untangling the rabbit ears…',
+    'Catching the signal…',
+    'Politely asking Reddit for posts…',
+    'Dusting off the dial…',
+    'Waiting for the static to clear…',
+    'Convincing the antenna to cooperate…',
+    'Almost got a clear picture…',
+  ];
+
+  function loadingStateHtml() {
+    const msg = LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)];
+    return `<div class="loading-state"><div class="loading-pulse"></div><div class="loading-text">${escapeHtml(msg)}</div></div>`;
+  }
+
+  function startLoadingAnimation() {
+    const articlesEl = document.getElementById('articles');
+    const wallEl = document.getElementById('tvWall');
+    const render = () => {
+      const html = loadingStateHtml();
+      articlesEl.innerHTML = html;
+      wallEl.innerHTML = html;
+    };
+    render();
+    return setInterval(render, 2200);
+  }
+
+  async function loadItems(spin) {
+    const badge = document.getElementById('badge');
+    if (spin) badge.classList.add('spinning');
+    const loadingTimer = startLoadingAnimation();
+    const qs = currentGroup ? ('?group=' + encodeURIComponent(currentGroup)) : '';
+    try {
+      items = await fetch('/api/items' + qs).then(r => r.json());
+      clearInterval(loadingTimer);
+      renderArticles();
+      renderTvWall();
+      renderFeedList();
+      const newCount = items.filter(it => it.isNew).length;
+      document.getElementById('pageSub').textContent =
+        items.length ? `${items.length} posts · ${newCount} new` : 'No posts found';
+    } catch {
+      clearInterval(loadingTimer);
+      document.getElementById('pageSub').textContent = 'Could not load feeds';
+      document.getElementById('articles').innerHTML = '<div class="empty-state">Could not load feeds — click Refresh.</div>';
+    } finally {
+      badge.classList.remove('spinning');
+    }
+  }
+
+  function isBigTv(it, i) {
+    if (!it.image) return false;
+    // Irregular, deterministic placement: every ~6th eligible item, offset by
+    // a hash of the title so it doesn't fall on the same column each refresh.
+    let hash = 0;
+    for (let c = 0; c < it.title.length; c++) hash = (hash * 31 + it.title.charCodeAt(c)) | 0;
+    return (i + Math.abs(hash)) % 6 === 0;
+  }
+
+  function renderTvWall() {
+    if (currentView !== 'tv') return;
+    const wall = document.getElementById('tvWall');
+    if (!items.length) {
+      wall.innerHTML = '<div class="empty-state">No posts yet — click Refresh.</div>';
+      return;
+    }
+    wall.innerHTML = items.map((it, i) => {
+      const big = isBigTv(it, i);
+      const channel = String((i % 12) + 2).padStart(2, '0');
+      return `
+      <div class="tv ${it.isNew ? 'has-new' : ''} ${big ? 'tv-big' : ''}" onclick="openArticle(${i})">
+        <div class="tv-shell">
+          <div class="tv-screen">
+            ${it.image
+              ? `<img src="${escapeHtml(it.image)}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=&quot;no-image&quot;>&#9737;</div>'">`
+              : `<div class="no-image">&#9737;</div>`}
+            <div class="tv-new-light"></div>
+            <div class="tv-caption">
+              <div class="tv-headline">${escapeHtml(it.title)}</div>
+            </div>
+          </div>
+          ${big ? `
+          <div class="tv-console">
+            <div class="tv-speaker">
+              ${Array.from({ length: 8 }).map(() => '<span></span>').join('')}
+            </div>
+            <div class="tv-channel">CH ${channel}</div>
+            <div class="tv-knobs">
+              <div class="tv-knob" style="--knob-rotate: -25deg"></div>
+              <div class="tv-knob" style="--knob-rotate: 40deg"></div>
+            </div>
+          </div>` : ''}
+        </div>
+        <div class="tv-legs"></div>
+        <div class="tv-feedname">${escapeHtml(it.feedName)}</div>
+      </div>
+    `;
+    }).join('');
+    syncTvRowHeight();
+  }
+
+  function syncTvRowHeight() {
+    const wall = document.getElementById('tvWall');
+    const smallTv = wall.querySelector('.tv:not(.tv-big)');
+    if (!smallTv) return;
+    // Measure the whole small tile (shell + legs + feedname caption), not
+    // just the screen, so a single grid row is always tall enough to fit
+    // it completely — otherwise it overflows into the row below and gets
+    // visually covered by the next tile.
+    const rowUnit = smallTv.getBoundingClientRect().height;
+    if (!rowUnit) return;
+    wall.style.setProperty('--tv-row-unit', `${rowUnit}px`);
+    wall.classList.add('tv-wall-measured');
+  }
+
+  window.addEventListener('resize', () => {
+    if (currentView === 'tv') syncTvRowHeight();
+  });
+
+  function renderArticles() {
+    const el = document.getElementById('articles');
+    if (!items.length) {
+      el.innerHTML = '<div class="empty-state">No posts yet — click Refresh.</div>';
+      return;
+    }
+    el.innerHTML = items.map((it, i) => `
+      <div class="article ${it.isNew ? '' : 'read'}" onclick="openArticle(${i})">
+        <div class="article-meta">
+          <span>${it.feedName}</span>
+          ${it.isNew ? '<span class="new-pill">NEW</span>' : ''}
+        </div>
+        <div class="article-title">${escapeHtml(it.title)}</div>
+        ${it.summary ? `<div class="article-summary">${escapeHtml(it.summary)}</div>` : ''}
+        <div class="article-footer">${timeAgo(it.published)}${it.author ? ' · ' + escapeHtml(it.author) : ''}</div>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(s) {
+    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  async function openArticle(i) {
+    const it = items[i];
+    if (!it.link) return;
+    try {
+      await fetch('/api/mark-seen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ link: it.link }),
+      });
+    } catch {}
+    it.isNew = false;
+    renderArticles();
+    renderTvWall();
+    window.open(it.link, '_blank');
+  }
+
+  function selectGroup(group) {
+    currentGroup = group;
+    document.getElementById('pageTitle').textContent = group || 'All Feeds';
+    renderFeedList();
+    loadItems(true);
+  }
+
+  async function refresh() {
+    await fetch('/api/refresh');
+    loadItems(true);
+  }
+
+  loadFeeds().then(() => loadItems(true));
+</script>
+</body>
+</html>

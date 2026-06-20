@@ -1,0 +1,22 @@
+[
+  {
+    "group": "Tech",
+    "name": "Hacker News — front page",
+    "url": "https://news.ycombinator.com/rss"
+  },
+  {
+    "group": "Tech",
+    "name": "Ars Technica",
+    "url": "http://feeds.arstechnica.com/arstechnica/index"
+  },
+  {
+    "group": "News",
+    "name": "BBC News — top stories",
+    "url": "http://feeds.bbci.co.uk/news/rss.xml"
+  },
+  {
+    "group": "News",
+    "name": "The Guardian — world",
+    "url": "https://www.theguardian.com/world/rss"
+  }
+]

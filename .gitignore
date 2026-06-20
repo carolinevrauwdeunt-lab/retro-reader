@@ -4,6 +4,10 @@ node_modules/
 *.log
 .DS_Store
 
+# Claude Code's local project memory — internal working notes for whoever is
+# developing this repo, not meant for the public OSS repo.
+.claude/
+
 # Internal open-source pipeline reports — useful for the maintainer's own
 # records, not meant for the public repo (they describe what personal data
 # was found/removed, including real business domain names).

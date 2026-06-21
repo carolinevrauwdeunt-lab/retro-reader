@@ -254,7 +254,11 @@ function parseFeed(xml) {
 
     items.push({
       title: stripTags(title).slice(0, 200),
-      link: link.trim(),
+      // Some feeds (e.g. ESPN) wrap <link> in CDATA, same as other text
+      // fields — unwrap it the same way, or it ends up as the literal
+      // string "<![CDATA[https://...]]>" instead of a usable URL, silently
+      // breaking og:image backfill, "Open original", and mark-seen.
+      link: decodeEntities(unwrapCdata(link)).trim(),
       published,
       author: stripTags(author),
       summary: stripTags(summaryRaw).slice(0, 280),

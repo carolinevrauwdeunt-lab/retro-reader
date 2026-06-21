@@ -1361,7 +1361,10 @@
     const qs = currentGroup ? ('?group=' + encodeURIComponent(currentGroup)) : '';
     try {
       const data = await fetch('/api/items' + qs).then(r => r.json());
-      if (myGeneration !== loadGeneration) return; // a newer load superseded this one
+      if (myGeneration !== loadGeneration) {
+        clearInterval(loadingTimer); // a newer load superseded this one — don't leak the interval
+        return;
+      }
       items = data.items || [];
       awaitingReddit = !!data.hasRedditFeeds;
       clearInterval(loadingTimer);
@@ -1404,9 +1407,9 @@
         }
       });
     } catch {
+      clearInterval(loadingTimer);
       if (myGeneration !== loadGeneration) return;
       awaitingReddit = false;
-      clearInterval(loadingTimer);
       document.getElementById('pageSub').textContent = 'Could not load feeds';
       document.getElementById('articles').innerHTML = '<div class="empty-state">Could not load feeds — click Refresh.</div>';
       badge.classList.remove('spinning');

@@ -23,6 +23,8 @@
   { "category": "Business", "name": "CNBC — Top News", "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html" },
   { "category": "Business", "name": "MarketWatch — Top Stories", "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories" },
 
+  { "category": "Financial", "name": "Yahoo Finance — top news", "url": "https://finance.yahoo.com/news/rssindex" },
+
   { "category": "Design", "name": "Design Milk", "url": "https://design-milk.com/feed/" },
   { "category": "Design", "name": "Dezeen", "url": "https://www.dezeen.com/feed/" },
   { "category": "Design", "name": "Core77", "url": "https://www.core77.com/feed" },

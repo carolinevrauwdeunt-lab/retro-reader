@@ -29,6 +29,7 @@ feeds.json      # Subscribed feeds, each { group, name, url }
 categories.json # List of category/group names (can include empty categories)
 presets.json    # Curated feed list (category + name + url) powering "Browse Presets"
 seen.json       # Array of article links already opened, for read/unread state
+watchlist.json  # Stock ticker symbols shown in the watchlist bar
 Start RSS Reader.command  # macOS double-click launcher (no terminal needed)
 ```
 
@@ -47,6 +48,7 @@ feeds.json        # User's feed subscriptions (ships with 4 example feeds)
 categories.json   # User's category names (ships with "Tech", "News")
 presets.json      # ~80 curated feeds across many categories for the "+ Browse Presets" picker
 seen.json         # Read-tracking state (starts as an empty array)
+watchlist.json    # User's stock ticker symbols (ships with AAPL, MSFT, GOOGL, SPY)
 .env.example      # Documents that there are no required env vars; PORT is a constant in server.js
 ```
 
@@ -67,6 +69,13 @@ POST /api/validate-feeds        batch-validate URLs (bulk "Add Your Own")
 GET  /api/items?group=X         fetch + parse all feed items, optionally filtered by category
 POST /api/mark-seen              mark an article link as read { link }
 GET  /api/refresh                 clear the in-memory feed cache
+GET  /api/watchlist                list watchlist tickers
+POST /api/watchlist                 add a ticker { ticker } (resolves indices via a ^-prefix fallback)
+PUT  /api/watchlist                  overwrite ticker order { tickers: [...] } (drag-and-drop reorder)
+DEL  /api/watchlist                   remove a ticker { ticker }
+GET  /api/stocks                       quotes + 1mo sparkline history for watchlist tickers (Yahoo Finance, 2min cache)
+GET  /api/stock-search?q=                search Yahoo Finance by name/symbol (for the add-ticker dropdown)
+GET  /api/stock-detail?ticker=&range=     quote + chart history for one ticker (range: 1mo/6mo/1y/5y)
 ```
 
 ## Configuration

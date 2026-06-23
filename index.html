@@ -721,6 +721,109 @@
   @media (max-width: 700px) {
     .reader-panel { width: 100vw; }
   }
+
+  /* ── WATCHLIST ── */
+  .watchlist-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 36px 14px;
+    overflow-x: auto;
+  }
+  .watchlist-card {
+    flex: 0 0 auto;
+    display: flex; flex-direction: column; gap: 4px;
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 124px;
+    position: relative;
+    cursor: pointer;
+  }
+  .watchlist-card:hover { border-color: rgba(201,146,58,0.35); }
+  .watchlist-ticker { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text); }
+  .watchlist-price { font-size: 15px; font-weight: 700; color: var(--text); }
+  .watchlist-change { font-size: 12px; font-weight: 600; }
+  .watchlist-change.up { color: #6fbf73; }
+  .watchlist-change.down { color: #d9685f; }
+  .watchlist-spark { width: 100%; height: 24px; display: block; }
+  .watchlist-remove {
+    position: absolute; top: 4px; right: 6px;
+    background: none; border: none; color: var(--text-dim);
+    font-size: 13px; cursor: pointer; line-height: 1;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .watchlist-card:hover .watchlist-remove { opacity: 1; }
+  .watchlist-remove:hover { color: var(--gold-bright); }
+  .watchlist-add {
+    flex: 0 0 auto;
+    background: none;
+    border: 1px dashed rgba(255,255,255,0.18);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-size: 12px; font-weight: 600;
+    padding: 10px 14px;
+    cursor: pointer;
+    min-width: 90px;
+  }
+  .watchlist-add:hover { color: var(--gold-bright); border-color: var(--gold); }
+
+  .ticker-search-modal { width: 420px; max-height: 60vh; }
+  .ticker-search-input {
+    background: var(--bg);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 10px 12px;
+    margin: 12px 16px 4px;
+    box-sizing: border-box;
+  }
+  .ticker-search-input:focus { outline: none; border-color: var(--gold); }
+  .ticker-search-hint { padding: 0 16px 10px; font-size: 11.5px; color: var(--text-dim); }
+  .ticker-search-results { padding: 0 8px 10px; }
+  .ticker-search-item {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .ticker-search-item:hover { background: rgba(255,255,255,0.05); }
+  .ticker-search-symbol { font-weight: 700; font-size: 13px; color: var(--gold-bright); min-width: 64px; }
+  .ticker-search-name { font-size: 12.5px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ticker-search-exchange { font-size: 11px; color: var(--text-dim); flex: 0 0 auto; }
+  .ticker-search-empty { padding: 16px; font-size: 12.5px; color: var(--text-dim); text-align: center; }
+
+  .stock-detail-modal { width: 560px; max-height: 80vh; }
+  .stock-detail-body { padding: 18px 22px 22px; overflow-y: auto; }
+  .stock-detail-name { font-size: 13px; color: var(--text-dim); margin-bottom: 2px; }
+  .stock-detail-price-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+  .stock-detail-price { font-size: 28px; font-weight: 700; color: var(--text); }
+  .stock-detail-change { font-size: 15px; font-weight: 600; }
+  .stock-detail-change.up { color: #6fbf73; }
+  .stock-detail-change.down { color: #d9685f; }
+  .stock-detail-range-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .stock-detail-range-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px; color: var(--text-dim);
+    font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em;
+    padding: 5px 10px; cursor: pointer;
+  }
+  .stock-detail-range-btn.active { color: var(--gold-bright); border-color: var(--gold); }
+  .stock-detail-chart { width: 100%; height: 180px; display: block; margin-bottom: 16px; }
+  .stock-detail-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
+  .stock-detail-stat-label { font-size: 11px; color: var(--text-dim); letter-spacing: 0.03em; text-transform: uppercase; }
+  .stock-detail-stat-value { font-size: 13px; color: var(--text); font-weight: 600; }
+  .stock-detail-loading { padding: 30px; text-align: center; color: var(--text-dim); font-size: 13px; }
+  .stock-detail-yahoo-link {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--gold);
+    text-decoration: none;
+  }
+  .stock-detail-yahoo-link:hover { color: var(--gold-bright); }
 </style>
 </head>
 <body>
@@ -741,6 +844,8 @@
 <div id="addFeedOverlay"></div>
 <div id="newCategoryOverlay"></div>
 <div id="readerOverlay"></div>
+<div id="tickerSearchOverlay"></div>
+<div id="stockDetailOverlay"></div>
 
 <div class="main">
   <div class="topbar">
@@ -759,6 +864,7 @@
       <button class="refresh-btn" onclick="refresh()">Refresh</button>
     </div>
   </div>
+  <div class="watchlist-bar" id="watchlistBar"></div>
   <div class="articles" id="articles">
     <div class="loading-state">Tuning in…</div>
   </div>
@@ -1625,7 +1731,302 @@
     loadItems(true);
   }
 
+  function sparklineSvg(history) {
+    if (!history || history.length < 2) return '';
+    const w = 100, h = 24;
+    const min = Math.min(...history), max = Math.max(...history);
+    const range = max - min || 1;
+    const step = w / (history.length - 1);
+    const points = history.map((v, i) => `${(i * step).toFixed(1)},${(h - ((v - min) / range) * h).toFixed(1)}`).join(' ');
+    const up = history[history.length - 1] >= history[0];
+    const color = up ? '#6fbf73' : '#d9685f';
+    return `<svg class="watchlist-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5"/></svg>`;
+  }
+
+  let draggedTicker = null;
+
+  function onWatchlistDragStart(e) {
+    draggedTicker = e.currentTarget.dataset.ticker;
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    // Safari requires setData during dragstart or the drag session won't register properly.
+    e.dataTransfer.setData('text/plain', draggedTicker || '');
+  }
+
+  function onWatchlistDragOver(e) {
+    e.preventDefault();
+    const target = e.currentTarget;
+    if (target.dataset.ticker === draggedTicker) return;
+    const bar = document.getElementById('watchlistBar');
+    const dragged = bar.querySelector('.watchlist-card.dragging');
+    if (!dragged) return;
+    const rect = target.getBoundingClientRect();
+    const before = e.clientX < rect.left + rect.width / 2;
+    bar.insertBefore(dragged, before ? target : target.nextSibling);
+  }
+
+  function onWatchlistDrop(e) {
+    e.preventDefault();
+    persistWatchlistOrder();
+  }
+
+  function onWatchlistDragEnd(e) {
+    e.currentTarget.classList.remove('dragging');
+    draggedTicker = null;
+    persistWatchlistOrder();
+  }
+
+  function persistWatchlistOrder() {
+    const cards = document.querySelectorAll('#watchlistBar .watchlist-card');
+    const tickers = Array.from(cards).map((c) => c.dataset.ticker);
+    fetch('/api/watchlist', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tickers }),
+    });
+  }
+
+  async function loadWatchlist() {
+    try {
+      const stocks = await fetch('/api/stocks').then((r) => r.json());
+      renderWatchlist(stocks);
+    } catch {
+      // silently skip if Yahoo Finance is unreachable
+    }
+  }
+
+  function renderWatchlist(stocks) {
+    const el = document.getElementById('watchlistBar');
+    el.innerHTML = stocks.map((s) => {
+      const dragAttrs = `draggable="true" data-ticker="${escapeHtml(s.ticker)}"
+        ondragstart="onWatchlistDragStart(event)" ondragover="onWatchlistDragOver(event)"
+        ondrop="onWatchlistDrop(event)" ondragend="onWatchlistDragEnd(event)"`;
+      if (s.error) {
+        return `<div class="watchlist-card" ${dragAttrs}><div class="watchlist-ticker">${escapeHtml(s.ticker)}</div><div class="watchlist-change">n/a</div>
+          <button class="watchlist-remove" onclick="event.stopPropagation(); removeFromWatchlist('${escapeHtml(s.ticker)}')" title="Remove">&times;</button></div>`;
+      }
+      const dir = s.change >= 0 ? 'up' : 'down';
+      const sign = s.change >= 0 ? '+' : '';
+      return `<div class="watchlist-card" ${dragAttrs} onclick="openStockDetail('${escapeHtml(s.ticker)}')">
+        <button class="watchlist-remove" onclick="event.stopPropagation(); removeFromWatchlist('${escapeHtml(s.ticker)}')" title="Remove">&times;</button>
+        <div class="watchlist-ticker">${escapeHtml(s.ticker)}</div>
+        <div class="watchlist-price">${s.price != null ? s.price.toFixed(2) : '—'}</div>
+        <div class="watchlist-change ${dir}">${sign}${s.changePct.toFixed(2)}%</div>
+        ${sparklineSvg(s.history)}
+      </div>`;
+    }).join('') + `<button class="watchlist-add" onclick="openTickerSearch()">+ Ticker</button>`;
+  }
+
+  let tickerSearchDebounce = null;
+
+  function openTickerSearch() {
+    document.getElementById('tickerSearchOverlay').innerHTML = `
+      <div class="preset-overlay" onclick="if (event.target === this) closeTickerSearch()">
+        <div class="preset-modal ticker-search-modal">
+          <div class="preset-modal-header">
+            <div class="preset-modal-title">Add Stock / Ticker</div>
+            <button class="preset-modal-close" onclick="closeTickerSearch()">&times;</button>
+          </div>
+          <input id="tickerSearchInput" class="ticker-search-input" type="text" placeholder="Search by name or symbol… e.g. Shell, AEX, Apple" oninput="onTickerSearchInput()">
+          <div class="ticker-search-hint">Powered by Yahoo Finance — pick the right exchange listing from the results.</div>
+          <div class="ticker-search-results" id="tickerSearchResults"></div>
+        </div>
+      </div>`;
+    document.getElementById('tickerSearchInput').focus();
+  }
+
+  function closeTickerSearch() {
+    document.getElementById('tickerSearchOverlay').innerHTML = '';
+  }
+
+  function onTickerSearchInput() {
+    clearTimeout(tickerSearchDebounce);
+    const q = document.getElementById('tickerSearchInput').value.trim();
+    if (!q) {
+      document.getElementById('tickerSearchResults').innerHTML = '';
+      return;
+    }
+    tickerSearchDebounce = setTimeout(() => runTickerSearch(q), 300);
+  }
+
+  async function runTickerSearch(q) {
+    const resultsEl = document.getElementById('tickerSearchResults');
+    if (!resultsEl) return;
+    try {
+      const results = await fetch('/api/stock-search?q=' + encodeURIComponent(q)).then((r) => r.json());
+      if (!results.length) {
+        resultsEl.innerHTML = `<div class="ticker-search-empty">No matches for "${escapeHtml(q)}".</div>`;
+        return;
+      }
+      resultsEl.innerHTML = results.map((r) => `
+        <div class="ticker-search-item" onclick="pickTicker('${escapeHtml(r.symbol)}')">
+          <div class="ticker-search-symbol">${escapeHtml(r.symbol)}</div>
+          <div class="ticker-search-name">${escapeHtml(r.name)}</div>
+          <div class="ticker-search-exchange">${escapeHtml(r.exchange)}</div>
+        </div>`).join('');
+    } catch {
+      resultsEl.innerHTML = `<div class="ticker-search-empty">Search failed. Try again.</div>`;
+    }
+  }
+
+  async function pickTicker(symbol) {
+    const res = await fetch('/api/watchlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker: symbol }),
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!result.ok) {
+      alert(result.error || `Could not add "${symbol}".`);
+      return;
+    }
+    closeTickerSearch();
+    loadWatchlist();
+  }
+
+  let detailRange = '6mo';
+
+  function openStockDetail(ticker) {
+    detailRange = '6mo';
+    document.getElementById('stockDetailOverlay').innerHTML = `
+      <div class="preset-overlay" onclick="if (event.target === this) closeStockDetail()">
+        <div class="preset-modal stock-detail-modal">
+          <div class="preset-modal-header">
+            <div class="preset-modal-title">${escapeHtml(ticker)}</div>
+            <button class="preset-modal-close" onclick="closeStockDetail()">&times;</button>
+          </div>
+          <div class="stock-detail-body" id="stockDetailBody">
+            <div class="stock-detail-loading">Loading chart…</div>
+          </div>
+        </div>
+      </div>`;
+    loadStockDetail(ticker);
+  }
+
+  function closeStockDetail() {
+    document.getElementById('stockDetailOverlay').innerHTML = '';
+  }
+
+  async function loadStockDetail(ticker) {
+    const body = document.getElementById('stockDetailBody');
+    if (!body) return;
+    body.innerHTML = `<div class="stock-detail-loading">Loading chart…</div>`;
+    try {
+      const s = await fetch(`/api/stock-detail?ticker=${encodeURIComponent(ticker)}&range=${detailRange}`).then((r) => r.json());
+      if (!body || s.error) {
+        body.innerHTML = `<div class="stock-detail-loading">Could not load data for ${escapeHtml(ticker)}.</div>`;
+        return;
+      }
+      const dir = s.change >= 0 ? 'up' : 'down';
+      const sign = s.change >= 0 ? '+' : '';
+      const ranges = ['1mo', '6mo', '1y', '5y'];
+      body.innerHTML = `
+        <div class="stock-detail-name">${escapeHtml(s.name)} · ${escapeHtml(s.currency || '')}</div>
+        <div class="stock-detail-price-row">
+          <div class="stock-detail-price">${s.price.toFixed(2)}</div>
+          <div class="stock-detail-change ${dir}">${sign}${s.change.toFixed(2)} (${sign}${s.changePct.toFixed(2)}%)</div>
+        </div>
+        <div class="stock-detail-range-row">
+          ${ranges.map((r) => `<button class="stock-detail-range-btn ${r === detailRange ? 'active' : ''}" onclick="detailRange='${r}'; loadStockDetail('${escapeHtml(s.ticker)}')">${r}</button>`).join('')}
+        </div>
+        ${detailChartSvg(s.history, s.timestamps, detailRange)}
+        <div class="stock-detail-stats">
+          <div><div class="stock-detail-stat-label">Day Range</div><div class="stock-detail-stat-value">${s.dayLow != null ? s.dayLow.toFixed(2) : '—'} – ${s.dayHigh != null ? s.dayHigh.toFixed(2) : '—'}</div></div>
+          <div><div class="stock-detail-stat-label">Previous Close</div><div class="stock-detail-stat-value">${s.previousClose.toFixed(2)}</div></div>
+          <div><div class="stock-detail-stat-label">52-Week Range</div><div class="stock-detail-stat-value">${s.fiftyTwoWeekLow != null ? s.fiftyTwoWeekLow.toFixed(2) : '—'} – ${s.fiftyTwoWeekHigh != null ? s.fiftyTwoWeekHigh.toFixed(2) : '—'}</div></div>
+        </div>
+        <a class="stock-detail-yahoo-link" href="https://finance.yahoo.com/quote/${encodeURIComponent(s.ticker)}" target="_blank" rel="noopener noreferrer">View on Yahoo Finance &rarr;</a>`;
+    } catch {
+      if (body) body.innerHTML = `<div class="stock-detail-loading">Could not load data for ${escapeHtml(ticker)}.</div>`;
+    }
+  }
+
+  function formatAxisDate(ts, unit) {
+    if (!ts) return '';
+    const d = new Date(ts * 1000);
+    if (unit === 'year') return d.toLocaleDateString(undefined, { year: 'numeric' });
+    if (unit === 'week') return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return d.toLocaleDateString(undefined, { month: 'short', year: unit === 'month' ? '2-digit' : undefined });
+  }
+
+  function tickUnitForRange(range) {
+    if (range === '1mo') return 'week';
+    if (range === '6mo' || range === '1y') return 'month';
+    return 'year';
+  }
+
+  // Marks the x-axis at each calendar-unit boundary (e.g. one line per month for a 1y view)
+  // rather than a fixed tick count, so gridlines line up with real time units.
+  function computeTicks(timestamps, unit) {
+    const keyOf = (ts) => {
+      const d = new Date(ts * 1000);
+      return unit === 'year' ? `${d.getFullYear()}`
+        : unit === 'month' ? `${d.getFullYear()}-${d.getMonth()}`
+        : `${d.getFullYear()}-${Math.floor((d.getDate() - 1 + new Date(d.getFullYear(), d.getMonth(), 1).getDay()) / 7)}-${d.getMonth()}`;
+    };
+    const ticks = [];
+    let lastKey = timestamps.length ? keyOf(timestamps[0]) : null;
+    // Skip the very first and last points — their labels sit too close to the
+    // y-axis price labels and chart edge to render cleanly, so only interior
+    // unit-boundary crossings get a gridline.
+    for (let i = 1; i < timestamps.length - 1; i++) {
+      const key = keyOf(timestamps[i]);
+      if (key !== lastKey) {
+        ticks.push({ index: i, ts: timestamps[i] });
+        lastKey = key;
+      }
+    }
+    return ticks;
+  }
+
+  function detailChartSvg(history, timestamps, range) {
+    if (!history || history.length < 2) return '<div class="stock-detail-loading">No chart data.</div>';
+    const outerW = 500, outerH = 180;
+    const leftPad = 56, rightPad = 8, topPad = 10, bottomPad = 22;
+    const w = outerW - leftPad - rightPad;
+    const h = outerH - topPad - bottomPad;
+
+    const min = Math.min(...history), max = Math.max(...history);
+    const valueRange = max - min || 1;
+    const mid = (min + max) / 2;
+    const step = w / (history.length - 1);
+    const xAt = (i) => leftPad + i * step;
+    const points = history.map((v, i) => `${xAt(i).toFixed(1)},${(topPad + h - ((v - min) / valueRange) * h).toFixed(1)}`).join(' ');
+    const up = history[history.length - 1] >= history[0];
+    const color = up ? '#6fbf73' : '#d9685f';
+    const areaPoints = `${leftPad},${topPad + h} ${points} ${leftPad + w},${topPad + h}`;
+
+    const unit = tickUnitForRange(range);
+    const ticks = (timestamps && timestamps.length) ? computeTicks(timestamps, unit) : [];
+    const vLines = ticks.map((t) => `<line x1="${xAt(t.index).toFixed(1)}" y1="${topPad}" x2="${xAt(t.index).toFixed(1)}" y2="${topPad + h}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`).join('');
+    const vLabels = ticks.map((t) => `<text x="${xAt(t.index).toFixed(1)}" y="${outerH - 4}" text-anchor="middle" font-size="9.5" fill="#6e6048">${formatAxisDate(t.ts, unit)}</text>`).join('');
+
+    return `<svg class="stock-detail-chart" viewBox="0 0 ${outerW} ${outerH}">
+      <line x1="${leftPad}" y1="${topPad}" x2="${leftPad + w}" y2="${topPad}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <line x1="${leftPad}" y1="${topPad + h / 2}" x2="${leftPad + w}" y2="${topPad + h / 2}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <line x1="${leftPad}" y1="${topPad + h}" x2="${leftPad + w}" y2="${topPad + h}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      ${vLines}
+      <text x="${leftPad - 8}" y="${topPad + 4}" text-anchor="end" font-size="10" fill="#6e6048">${max.toFixed(2)}</text>
+      <text x="${leftPad - 8}" y="${topPad + h / 2 + 4}" text-anchor="end" font-size="10" fill="#6e6048">${mid.toFixed(2)}</text>
+      <text x="${leftPad - 8}" y="${topPad + h + 4}" text-anchor="end" font-size="10" fill="#6e6048">${min.toFixed(2)}</text>
+      ${vLabels}
+      <polygon points="${areaPoints}" fill="${color}" opacity="0.08"/>
+      <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2"/>
+    </svg>`;
+  }
+
+  async function removeFromWatchlist(ticker) {
+    await fetch('/api/watchlist', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker }),
+    });
+    loadWatchlist();
+  }
+
   loadFeeds().then(() => loadItems(true));
+  loadWatchlist();
+  setInterval(loadWatchlist, 2 * 60 * 1000);
 </script>
 </body>
 </html>

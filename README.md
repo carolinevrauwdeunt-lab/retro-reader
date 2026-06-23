@@ -24,6 +24,9 @@ appreciated, never expected.
 - Categories can exist empty — create a category before you've added any feeds to it
 - Read/unread tracking
 - Pulls Open Graph images for feeds that don't include their own
+- **Stock watchlist** — a ticker bar with live prices, % change, and sparklines (via Yahoo
+  Finance), a search dropdown to add tickers by name, drag-and-drop reordering, and a
+  click-through detail view with a larger chart (1mo/6mo/1y/5y) and a link to Yahoo Finance
 - Zero dependencies, zero build step, zero database — just flat JSON files
 
 ## Screenshots
@@ -68,6 +71,9 @@ need a different port.
   power a "quick add" feature in the UI.
 - `seen.json` — tracks which article links you've already opened, so they can be marked
   as read. Starts empty.
+- `watchlist.json` — your stock watchlist, a flat array of ticker symbols (e.g. `^AEX` for
+  indices, `SHELL.AS` for a specific exchange listing). Ships with a small example set —
+  edit freely or use the in-app search to add your own.
 
 ## Using with Claude Code
 

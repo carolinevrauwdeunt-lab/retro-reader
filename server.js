@@ -9,13 +9,83 @@ const FEEDS_PATH = path.join(__dirname, 'feeds.json');
 const SEEN_PATH = path.join(__dirname, 'seen.json');
 const PRESETS_PATH = path.join(__dirname, 'presets.json');
 const CATEGORIES_PATH = path.join(__dirname, 'categories.json');
+const WATCHLIST_PATH = path.join(__dirname, 'watchlist.json');
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const REDDIT_CACHE_TTL_MS = 20 * 60 * 1000;
+const STOCK_CACHE_TTL_MS = 2 * 60 * 1000;
 
 let feedCache = new Map(); // url -> { items, fetchedAt }
 let ogImageCache = new Map(); // article link -> image url ('' if none found)
+let stockCache = new Map(); // ticker -> { data, fetchedAt }
 const OG_IMAGE_TIMEOUT_MS = 4000;
 const OG_IMAGE_CONCURRENCY = 6;
+
+function loadWatchlist() {
+  if (!fs.existsSync(WATCHLIST_PATH)) return ['AAPL', 'MSFT', 'GOOGL', 'SPY'];
+  try {
+    const list = JSON.parse(fs.readFileSync(WATCHLIST_PATH, 'utf8'));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveWatchlist(list) {
+  fs.writeFileSync(WATCHLIST_PATH, JSON.stringify(list, null, 2) + '\n');
+}
+
+async function fetchChartData(ticker, range = '1mo') {
+  const target = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=${range}&interval=1d`;
+  const raw = await fetchUrl(target);
+  const json = JSON.parse(raw);
+  const result = json && json.chart && json.chart.result && json.chart.result[0];
+  if (!result) return null;
+  const meta = result.meta;
+  if (typeof meta.regularMarketPrice !== 'number' || typeof meta.chartPreviousClose !== 'number') return null;
+
+  const closes = (result.indicators && result.indicators.quote && result.indicators.quote[0] && result.indicators.quote[0].close) || [];
+  const timestamps = result.timestamp || [];
+  const history = [];
+  const historyTimestamps = [];
+  closes.forEach((c, i) => {
+    if (typeof c === 'number') {
+      history.push(c);
+      historyTimestamps.push(timestamps[i]);
+    }
+  });
+
+  return {
+    ticker,
+    name: meta.shortName || meta.longName || ticker,
+    currency: meta.currency,
+    price: meta.regularMarketPrice,
+    previousClose: meta.chartPreviousClose,
+    change: meta.regularMarketPrice - meta.chartPreviousClose,
+    changePct: ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose) * 100,
+    dayHigh: meta.regularMarketDayHigh,
+    dayLow: meta.regularMarketDayLow,
+    fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh,
+    fiftyTwoWeekLow: meta.fiftyTwoWeekLow,
+    history,
+    timestamps: historyTimestamps,
+  };
+}
+
+// Indices (e.g. AEX, FTSE, DAX) are listed on Yahoo with a leading caret (^AEX),
+// so a plain symbol lookup can silently match an unrelated/defunct instrument instead.
+async function fetchStockData(ticker, range = '1mo') {
+  const cached = stockCache.get(ticker + ':' + range);
+  if (cached && Date.now() - cached.fetchedAt < STOCK_CACHE_TTL_MS) return cached.data;
+
+  let data = await fetchChartData(ticker, range);
+  if (!data && !ticker.startsWith('^')) {
+    data = await fetchChartData('^' + ticker, range);
+  }
+  if (!data) throw new Error('No data for ' + ticker);
+
+  stockCache.set(ticker + ':' + range, { data, fetchedAt: Date.now() });
+  return data;
+}
 
 function loadFeeds() {
   return JSON.parse(fs.readFileSync(FEEDS_PATH, 'utf8'));
@@ -614,6 +684,148 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/presets') {
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify(loadPresets()));
+    return;
+  }
+
+  if (pathname === '/api/watchlist' && req.method === 'GET') {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(loadWatchlist()));
+    return;
+  }
+
+  if (pathname === '/api/watchlist' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', async () => {
+      try {
+        const { ticker } = JSON.parse(body);
+        const t = String(ticker || '').trim().toUpperCase();
+        if (!t) throw new Error('Missing ticker');
+
+        let resolved;
+        try {
+          resolved = await fetchStockData(t);
+        } catch {
+          res.statusCode = 400;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ ok: false, error: `Could not find a quote for "${t}" on Yahoo Finance.` }));
+          return;
+        }
+
+        const list = loadWatchlist();
+        if (!list.includes(resolved.ticker)) list.push(resolved.ticker);
+        saveWatchlist(list);
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ ok: true, watchlist: list }));
+      } catch {
+        res.statusCode = 400;
+        res.end(JSON.stringify({ ok: false, error: 'Bad request' }));
+      }
+    });
+    return;
+  }
+
+  if (pathname === '/api/watchlist' && req.method === 'PUT') {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', () => {
+      try {
+        const { tickers } = JSON.parse(body);
+        if (!Array.isArray(tickers)) throw new Error('Missing tickers');
+        const current = new Set(loadWatchlist());
+        const next = tickers.filter((t) => current.has(t));
+        saveWatchlist(next);
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ ok: true, watchlist: next }));
+      } catch {
+        res.statusCode = 400;
+        res.end(JSON.stringify({ ok: false, error: 'Bad request' }));
+      }
+    });
+    return;
+  }
+
+  if (pathname === '/api/watchlist' && req.method === 'DELETE') {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', () => {
+      try {
+        const { ticker } = JSON.parse(body);
+        const t = String(ticker || '').trim().toUpperCase();
+        const list = loadWatchlist().filter((x) => x !== t);
+        saveWatchlist(list);
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ ok: true, watchlist: list }));
+      } catch {
+        res.statusCode = 400;
+        res.end(JSON.stringify({ ok: false, error: 'Bad request' }));
+      }
+    });
+    return;
+  }
+
+  if (pathname === '/api/stocks' && req.method === 'GET') {
+    try {
+      const tickers = query.tickers ? String(query.tickers).split(',').filter(Boolean) : loadWatchlist();
+      const results = await Promise.all(
+        tickers.map(async (t) => {
+          try {
+            return await fetchStockData(t);
+          } catch (e) {
+            return { ticker: t, error: e.message };
+          }
+        })
+      );
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(results));
+    } catch {
+      res.statusCode = 500;
+      res.end(JSON.stringify({ ok: false, error: 'Failed to fetch stocks' }));
+    }
+    return;
+  }
+
+  if (pathname === '/api/stock-search' && req.method === 'GET') {
+    try {
+      const q = String(query.q || '').trim();
+      if (!q) {
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify([]));
+        return;
+      }
+      const target = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=8&newsCount=0`;
+      const raw = await fetchUrl(target);
+      const json = JSON.parse(raw);
+      const results = (json.quotes || [])
+        .filter((qt) => qt.symbol && (qt.quoteType === 'EQUITY' || qt.quoteType === 'ETF' || qt.quoteType === 'INDEX' || qt.quoteType === 'CRYPTOCURRENCY' || qt.quoteType === 'MUTUALFUND'))
+        .map((qt) => ({
+          symbol: qt.symbol,
+          name: qt.shortname || qt.longname || qt.symbol,
+          exchange: qt.exchDisp || qt.exchange || '',
+          type: qt.typeDisp || qt.quoteType || '',
+        }));
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(results));
+    } catch {
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify([]));
+    }
+    return;
+  }
+
+  if (pathname === '/api/stock-detail' && req.method === 'GET') {
+    try {
+      const ticker = String(query.ticker || '').trim();
+      const range = String(query.range || '6mo');
+      if (!ticker) throw new Error('Missing ticker');
+      const data = await fetchStockData(ticker, range);
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(data));
+    } catch (e) {
+      res.statusCode = 404;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ error: e.message }));
+    }
     return;
   }
 

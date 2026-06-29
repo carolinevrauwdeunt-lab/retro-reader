@@ -32,6 +32,7 @@ appreciated, never expected.
 ## Screenshots
 <img width="1200" height="675" alt="drop-kit-landscape-1781954476711" src="https://github.com/user-attachments/assets/7cc63694-a490-4626-9e2d-ff6f873826ea" />
 <img width="1200" height="675" alt="drop-kit-landscape-1781954521010" src="https://github.com/user-attachments/assets/a669a2b2-a2d3-4bd7-bd38-d1c4db5f2e2e" />
+<img width="1200" height="675" alt="drop-kit-landscape-1782740154242" src="https://github.com/user-attachments/assets/8ae3f497-e756-43ba-b690-9e14d58468c0" />
 
 
 ## Quick Start

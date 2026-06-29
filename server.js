@@ -797,7 +797,7 @@ const server = http.createServer(async (req, res) => {
       const raw = await fetchUrl(target);
       const json = JSON.parse(raw);
       const results = (json.quotes || [])
-        .filter((qt) => qt.symbol && (qt.quoteType === 'EQUITY' || qt.quoteType === 'ETF' || qt.quoteType === 'INDEX' || qt.quoteType === 'CRYPTOCURRENCY' || qt.quoteType === 'MUTUALFUND'))
+        .filter((qt) => qt.symbol && (qt.quoteType === 'EQUITY' || qt.quoteType === 'ETF' || qt.quoteType === 'INDEX' || qt.quoteType === 'CRYPTOCURRENCY' || qt.quoteType === 'MUTUALFUND' || qt.quoteType === 'CURRENCY'))
         .map((qt) => ({
           symbol: qt.symbol,
           name: qt.shortname || qt.longname || qt.symbol,

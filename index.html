@@ -742,6 +742,7 @@
   .watchlist-card:hover { border-color: rgba(201,146,58,0.35); }
   .watchlist-ticker { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--text); }
   .watchlist-price { font-size: 15px; font-weight: 700; color: var(--text); }
+  .watchlist-currency { font-size: 10px; font-weight: 600; color: var(--text-dim); }
   .watchlist-change { font-size: 12px; font-weight: 600; }
   .watchlist-change.up { color: #6fbf73; }
   .watchlist-change.down { color: #d9685f; }
@@ -780,6 +781,20 @@
   }
   .ticker-search-input:focus { outline: none; border-color: var(--gold); }
   .ticker-search-hint { padding: 0 16px 10px; font-size: 11.5px; color: var(--text-dim); }
+  .ticker-search-quick-label { padding: 0 16px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-dim); }
+  .ticker-search-quick-label-first { padding-top: 14px; }
+  .ticker-search-quick { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 12px; }
+  .ticker-search-quick-btn {
+    background: var(--bg);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 9px;
+    cursor: pointer;
+  }
+  .ticker-search-quick-btn:hover { color: var(--gold-bright); border-color: var(--gold); }
   .ticker-search-results { padding: 0 8px 10px; }
   .ticker-search-item {
     display: flex; align-items: center; justify-content: space-between;
@@ -1795,6 +1810,11 @@
     }
   }
 
+  function displayTicker(ticker) {
+    const m = /^([A-Z]{3})([A-Z]{3})=X$/.exec(ticker);
+    return m ? `${m[1]} → ${m[2]}` : ticker;
+  }
+
   function renderWatchlist(stocks) {
     const el = document.getElementById('watchlistBar');
     el.innerHTML = stocks.map((s) => {
@@ -1802,15 +1822,15 @@
         ondragstart="onWatchlistDragStart(event)" ondragover="onWatchlistDragOver(event)"
         ondrop="onWatchlistDrop(event)" ondragend="onWatchlistDragEnd(event)"`;
       if (s.error) {
-        return `<div class="watchlist-card" ${dragAttrs}><div class="watchlist-ticker">${escapeHtml(s.ticker)}</div><div class="watchlist-change">n/a</div>
+        return `<div class="watchlist-card" ${dragAttrs}><div class="watchlist-ticker">${escapeHtml(displayTicker(s.ticker))}</div><div class="watchlist-change">n/a</div>
           <button class="watchlist-remove" onclick="event.stopPropagation(); removeFromWatchlist('${escapeHtml(s.ticker)}')" title="Remove">&times;</button></div>`;
       }
       const dir = s.change >= 0 ? 'up' : 'down';
       const sign = s.change >= 0 ? '+' : '';
       return `<div class="watchlist-card" ${dragAttrs} onclick="openStockDetail('${escapeHtml(s.ticker)}')">
         <button class="watchlist-remove" onclick="event.stopPropagation(); removeFromWatchlist('${escapeHtml(s.ticker)}')" title="Remove">&times;</button>
-        <div class="watchlist-ticker">${escapeHtml(s.ticker)}</div>
-        <div class="watchlist-price">${s.price != null ? s.price.toFixed(2) : '—'}</div>
+        <div class="watchlist-ticker">${escapeHtml(displayTicker(s.ticker))}</div>
+        <div class="watchlist-price">${s.price != null ? s.price.toFixed(2) : '—'}${s.currency ? ` <span class="watchlist-currency">${escapeHtml(s.currency)}</span>` : ''}</div>
         <div class="watchlist-change ${dir}">${sign}${s.changePct.toFixed(2)}%</div>
         ${sparklineSvg(s.history)}
       </div>`;
@@ -1824,11 +1844,16 @@
       <div class="preset-overlay" onclick="if (event.target === this) closeTickerSearch()">
         <div class="preset-modal ticker-search-modal">
           <div class="preset-modal-header">
-            <div class="preset-modal-title">Add Stock / Ticker</div>
+            <div class="preset-modal-title">Add Stock or Currency / Ticker</div>
             <button class="preset-modal-close" onclick="closeTickerSearch()">&times;</button>
           </div>
-          <input id="tickerSearchInput" class="ticker-search-input" type="text" placeholder="Search by name or symbol… e.g. Shell, AEX, Apple" oninput="onTickerSearchInput()">
+          <div class="ticker-search-quick-label ticker-search-quick-label-first">Search stocks or exchanges</div>
+          <input id="tickerSearchInput" class="ticker-search-input" type="text" placeholder="Search by name or symbol… e.g. Shell, AEX, Apple, EUR/USD" oninput="onTickerSearchInput()">
           <div class="ticker-search-hint">Powered by Yahoo Finance — pick the right exchange listing from the results.</div>
+          <div class="ticker-search-quick-label">Common currency conversions</div>
+          <div class="ticker-search-quick">
+            ${['EURUSD=X', 'USDEUR=X', 'GBPUSD=X', 'USDGBP=X', 'USDJPY=X', 'JPYUSD=X', 'GBPEUR=X', 'EURGBP=X', 'CADUSD=X', 'USDCAD=X', 'CADEUR=X', 'EURCAD=X'].map((sym) => `<button class="ticker-search-quick-btn" onclick="pickTicker('${sym}')">${displayTicker(sym)}</button>`).join('')}
+          </div>
           <div class="ticker-search-results" id="tickerSearchResults"></div>
         </div>
       </div>`;
@@ -1892,7 +1917,7 @@
       <div class="preset-overlay" onclick="if (event.target === this) closeStockDetail()">
         <div class="preset-modal stock-detail-modal">
           <div class="preset-modal-header">
-            <div class="preset-modal-title">${escapeHtml(ticker)}</div>
+            <div class="preset-modal-title">${escapeHtml(displayTicker(ticker))}</div>
             <button class="preset-modal-close" onclick="closeStockDetail()">&times;</button>
           </div>
           <div class="stock-detail-body" id="stockDetailBody">
